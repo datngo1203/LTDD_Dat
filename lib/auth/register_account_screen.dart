@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../TrangChu.dart';
 import 'login_repository.dart';
 
 class RegisterAccountScreen extends StatefulWidget {
@@ -12,9 +14,9 @@ class RegisterAccountScreen extends StatefulWidget {
 
 class _RegisterAccountScreenState extends State<RegisterAccountScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _displayNameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _loginRepository = LoginRepository();
   final _imagePicker = ImagePicker();
@@ -27,7 +29,7 @@ class _RegisterAccountScreenState extends State<RegisterAccountScreen> {
   void dispose() {
     _phoneController.dispose();
     _passwordController.dispose();
-    _fullNameController.dispose();
+    _displayNameController.dispose();
     _emailController.dispose();
     super.dispose();
   }
@@ -104,11 +106,31 @@ class _RegisterAccountScreenState extends State<RegisterAccountScreen> {
     });
 
     try {
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
+      final displayName = _displayNameController.text.trim();
+      final phone = _phoneController.text.trim();
+
+      final userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      final user = userCredential.user;
+
+      if (user == null) {
+        throw FirebaseAuthException(code: 'user-not-created');
+      }
+
+      if (displayName.isNotEmpty) {
+        await user.updateDisplayName(displayName);
+      }
+
       final result = await _loginRepository.createAccount(
-        phone: _phoneController.text,
-        password: _passwordController.text,
-        fullName: _fullNameController.text,
-        email: _emailController.text,
+        uid: user.uid,
+        email: email,
+        displayName: displayName,
+        phone: phone,
         avatarBase64: _avatarBase64,
       );
 
@@ -122,14 +144,34 @@ class _RegisterAccountScreenState extends State<RegisterAccountScreen> {
           message:
               'Vui lòng dùng số điện thoại khác hoặc đăng nhập bằng tài khoản đã có.',
         );
+        await user.delete();
         return;
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Tạo tài khoản thành công.')),
       );
-      Navigator.of(context).pop(
-        LoginRepository.normalizePhoneInput(_phoneController.text),
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const TrangChu()),
+        (route) => false,
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      String message = 'Đã có lỗi khi tạo tài khoản. Vui lòng thử lại.';
+      if (e.code == 'email-already-in-use') {
+        message = 'Email này đã được sử dụng.';
+      } else if (e.code == 'invalid-email') {
+        message = 'Email chưa đúng định dạng.';
+      } else if (e.code == 'weak-password') {
+        message = 'Mật khẩu phải có ít nhất 6 ký tự.';
+      }
+
+      await _showInfoDialog(
+        title: 'Không thể tạo tài khoản',
+        message: message,
       );
     } catch (_) {
       if (!mounted) {
@@ -176,7 +218,7 @@ class _RegisterAccountScreenState extends State<RegisterAccountScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FB),
       appBar: AppBar(
-        title: const Text('Thêm tài khoản'),
+        title: const Text('Tạo tài khoản'),
         backgroundColor: const Color(0xFFF5F7FB),
       ),
       body: SafeArea(
@@ -192,7 +234,7 @@ class _RegisterAccountScreenState extends State<RegisterAccountScreen> {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.blue.withOpacity(0.08),
+                      color: Colors.blue.withValues(alpha: 0.08),
                       blurRadius: 24,
                       offset: const Offset(0, 12),
                     ),
@@ -251,24 +293,24 @@ class _RegisterAccountScreenState extends State<RegisterAccountScreen> {
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
-                          labelText: 'Số điện thoại *',
-                          hintText: 'Ví dụ: 0912 345 678',
-                          prefixIcon: const Icon(Icons.phone_rounded),
+                          labelText: 'Email *',
+                          prefixIcon: const Icon(Icons.email_outlined),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                         validator: (value) {
-                          final normalizedPhone =
-                              LoginRepository.normalizePhoneInput(value ?? '');
-                          if (normalizedPhone.isEmpty) {
-                            return 'Vui lòng nhập số điện thoại';
+                          final email = (value ?? '').trim();
+                          if (email.isEmpty) {
+                            return 'Vui lòng nhập email';
                           }
-                          if (normalizedPhone.length < 9) {
-                            return 'Số điện thoại chưa hợp lệ';
+                          if (!RegExp(
+                            r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                          ).hasMatch(email)) {
+                            return 'Email chưa đúng định dạng';
                           }
                           return null;
                         },
@@ -300,15 +342,18 @@ class _RegisterAccountScreenState extends State<RegisterAccountScreen> {
                           if ((value ?? '').trim().isEmpty) {
                             return 'Vui lòng nhập mật khẩu';
                           }
+                          if ((value ?? '').trim().length < 6) {
+                            return 'Mật khẩu phải có ít nhất 6 ký tự';
+                          }
                           return null;
                         },
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
-                        controller: _fullNameController,
+                        controller: _displayNameController,
                         textCapitalization: TextCapitalization.words,
                         decoration: InputDecoration(
-                          labelText: 'Họ và tên',
+                          labelText: 'Tên hiển thị',
                           prefixIcon: const Icon(Icons.badge_outlined),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
@@ -317,24 +362,24 @@ class _RegisterAccountScreenState extends State<RegisterAccountScreen> {
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
                         decoration: InputDecoration(
-                          labelText: 'Email',
-                          prefixIcon: const Icon(Icons.email_outlined),
+                          labelText: 'Số điện thoại',
+                          hintText: 'Ví dụ: 0912 345 678',
+                          prefixIcon: const Icon(Icons.phone_rounded),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                         validator: (value) {
-                          final email = (value ?? '').trim();
-                          if (email.isEmpty) {
+                          final normalizedPhone =
+                              LoginRepository.normalizePhoneInput(value ?? '');
+                          if (normalizedPhone.isEmpty) {
                             return null;
                           }
-                          if (!RegExp(
-                            r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
-                          ).hasMatch(email)) {
-                            return 'Email chưa đúng định dạng';
+                          if (normalizedPhone.length < 9) {
+                            return 'Số điện thoại chưa hợp lệ';
                           }
                           return null;
                         },
@@ -362,7 +407,7 @@ class _RegisterAccountScreenState extends State<RegisterAccountScreen> {
                                   ),
                                 )
                               : const Text(
-                                  'Lưu tài khoản',
+                                  'Tạo tài khoản',
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,

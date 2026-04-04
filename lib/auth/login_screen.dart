@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../TrangChu.dart';
+import 'register_account_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -62,36 +63,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _handleRegister() async {
     FocusScope.of(context).unfocus();
-
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isSubmitting = true);
-
-    try {
-      final userCredential =
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Đăng ký thành công")),
-      );
-    } on FirebaseAuthException catch (e) {
-      String message = "Đăng ký thất bại";
-
-      if (e.code == 'email-already-in-use') {
-        message = "Email đã tồn tại";
-      } else if (e.code == 'weak-password') {
-        message = "Mật khẩu quá yếu (>=6 ký tự)";
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const RegisterAccountScreen(),
+      ),
+    );
   }
 
   @override
@@ -111,7 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: Colors.blue.withValues(alpha: 0.1),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),
