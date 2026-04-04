@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+import '../auth/login_screen.dart';
 import 'app_language.dart';
 import 'profile_screen.dart';
 import 'change_password_screen.dart';
@@ -36,9 +38,9 @@ class SettingsScreen extends StatelessWidget {
                 children: [
                   SizedBox(height: height * 0.02),
 
-                  // 🔥 REALTIME USER INFO
+                  /// 🔥 STREAM USER -> AUTO UPDATE UI
                   StreamBuilder<User?>(
-                    stream: FirebaseAuth.instance.userChanges(),
+                    stream: FirebaseAuth.instance.authStateChanges(),
                     builder: (context, snapshot) {
                       final user = snapshot.data;
 
@@ -51,11 +53,12 @@ class SettingsScreen extends StatelessWidget {
                                 size: isTablet ? 60 : 40,
                                 color: Colors.blue),
                           ),
-
                           const SizedBox(height: 10),
 
+                          /// NAME
                           Text(
-                            user?.displayName ?? "Chưa có tên",
+                            user?.displayName ??
+                                appLanguage.t("Chưa có tên"),
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -63,10 +66,11 @@ class SettingsScreen extends StatelessWidget {
                             ),
                           ),
 
+                          /// EMAIL
                           Text(
-                            user?.email ?? "Chưa có email",
-                            style:
-                                TextStyle(color: Colors.grey[600]),
+                            user?.email ??
+                                appLanguage.t("Chưa có email"),
+                            style: TextStyle(color: Colors.grey[600]),
                           ),
                         ],
                       );
@@ -75,11 +79,13 @@ class SettingsScreen extends StatelessWidget {
 
                   SizedBox(height: height * 0.02),
 
+                  /// MENU
                   Expanded(
                     child: Container(
                       margin:
                           EdgeInsets.symmetric(horizontal: width * 0.05),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
@@ -96,7 +102,8 @@ class SettingsScreen extends StatelessWidget {
                             icon: Icons.lock_outline,
                             title:
                                 appLanguage.t("Đổi mật khẩu"),
-                            page: const ChangePasswordScreen(),
+                            page:
+                                const ChangePasswordScreen(),
                           ),
                           SettingItem(
                             icon: Icons.folder_outlined,
@@ -110,15 +117,16 @@ class SettingsScreen extends StatelessWidget {
                             page: const LanguageScreen(),
                           ),
                           SettingItem(
-                            icon: Icons.account_balance_wallet_outlined,
-                            title:
-                                appLanguage.t("Đơn vị tiền tệ"),
+                            icon: Icons
+                                .account_balance_wallet_outlined,
+                            title: appLanguage
+                                .t("Đơn vị tiền tệ"),
                             page: const CurrencyScreen(),
                           ),
                           SettingItem(
                             icon: Icons.info_outline,
-                            title: appLanguage.t(
-                                "Thông tin về chúng tôi"),
+                            title: appLanguage
+                                .t("Thông tin về chúng tôi"),
                             page: const AboutScreen(),
                           ),
                         ],
@@ -126,7 +134,7 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
 
-                  // 🔥 LOGOUT
+                  /// LOGOUT
                   Padding(
                     padding: EdgeInsets.all(width * 0.05),
                     child: SizedBox(
@@ -142,11 +150,20 @@ class SettingsScreen extends StatelessWidget {
                         ),
                         onPressed: () async {
                           await FirebaseAuth.instance.signOut();
+
+                          Navigator.of(context)
+                              .pushAndRemoveUntil(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const LoginScreen(),
+                            ),
+                            (route) => false,
+                          );
                         },
                         child: Text(
                           appLanguage.t("Đăng xuất"),
-                          style:
-                              const TextStyle(color: Colors.white),
+                          style: const TextStyle(
+                              color: Colors.white),
                         ),
                       ),
                     ),
@@ -161,7 +178,6 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
-// ================= ITEM =================
 class SettingItem extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -186,7 +202,8 @@ class SettingItem extends StatelessWidget {
         child: Icon(icon, color: Colors.blue),
       ),
       title: Text(title),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+      trailing:
+          const Icon(Icons.arrow_forward_ios, size: 16),
       onTap: () {
         Navigator.push(
           context,

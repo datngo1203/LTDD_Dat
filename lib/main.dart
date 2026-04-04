@@ -33,24 +33,20 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       locale: appLang.locale,
 
-      // 🔥 AUTO LOGIN
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
 
-          // ⏳ Đang load Firebase
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
             );
           }
 
-          // ✅ Đã đăng nhập → vào Trang Chủ
           if (snapshot.hasData) {
             return const TrangChu();
           }
 
-          // ❌ Chưa đăng nhập → vào Login
           return const LoginScreen();
         },
       ),
