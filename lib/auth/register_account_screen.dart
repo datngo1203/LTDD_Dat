@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../TrangChu.dart';
+import '../home_page.dart';
 import 'login_repository.dart';
 
 class RegisterAccountScreen extends StatefulWidget {
@@ -152,7 +152,7 @@ class _RegisterAccountScreenState extends State<RegisterAccountScreen> {
         const SnackBar(content: Text('Tạo tài khoản thành công.')),
       );
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const TrangChu()),
+        MaterialPageRoute(builder: (_) => const HomePage()),
         (route) => false,
       );
     } on FirebaseAuthException catch (e) {

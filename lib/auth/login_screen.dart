@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../TrangChu.dart';
+import '../home_page.dart';
 import 'register_account_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -42,7 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const TrangChu()),
+        MaterialPageRoute(builder: (_) => const HomePage()),
       );
     } on FirebaseAuthException catch (e) {
       String message = "Đăng nhập thất bại";
