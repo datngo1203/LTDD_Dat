@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../SETTING/app_language.dart';
-import '../TrangChu.dart';
+import '../home_page.dart';
 import 'group_repository.dart';
 
 class JoinGroupSummaryScreen extends StatefulWidget {
@@ -183,7 +183,7 @@ class _JoinGroupSummaryScreenState extends State<JoinGroupSummaryScreen> {
       }
 
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const TrangChu()),
+        MaterialPageRoute(builder: (_) => const HomePage()),
         (route) => false,
       );
 

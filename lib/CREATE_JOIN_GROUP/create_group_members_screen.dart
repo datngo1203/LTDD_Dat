@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../SETTING/app_language.dart';
-import '../TrangChu.dart';
+import '../home_page.dart';
 import 'group_repository.dart';
 
 class CreateGroupMembersScreen extends StatefulWidget {
@@ -308,7 +308,7 @@ class _CreateGroupMembersScreenState extends State<CreateGroupMembersScreen> {
       }
 
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const TrangChu()),
+        MaterialPageRoute(builder: (_) => const HomePage()),
         (route) => false,
       );
     } catch (e) {
