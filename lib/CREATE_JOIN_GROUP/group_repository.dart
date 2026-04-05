@@ -63,6 +63,23 @@ class GroupRepository {
 
   static const String _groupCodeChars = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
+  Future<String> getCurrentUserDefaultDisplayName() async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      return '';
+    }
+
+    final ownerProfile =
+        await _firestore.collection('users').doc(currentUser.uid).get();
+    final ownerData = ownerProfile.data() ?? <String, dynamic>{};
+
+    return (ownerData['displayName'] as String? ??
+            currentUser.displayName ??
+            currentUser.email ??
+            '')
+        .trim();
+  }
+
   Future<GroupMemberCandidate?> findUserByEmail(String email) async {
     final normalizedEmail = email.trim();
     if (normalizedEmail.isEmpty) {
