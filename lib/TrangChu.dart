@@ -1,21 +1,25 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'ChiTietNhom.dart';
-import 'CREATE_JOIN_GROUP/create_group_sheet.dart';
-import 'SETTING/screensettings.dart';
 import 'package:provider/provider.dart';
+
+import 'CREATE_JOIN_GROUP/create_group_sheet.dart';
+import 'CREATE_JOIN_GROUP/group_repository.dart';
+import 'ChiTietNhom.dart';
 import 'SETTING/app_language.dart';
+import 'SETTING/screensettings.dart';
 
 class TrangChu extends StatelessWidget {
   const TrangChu({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Lắng nghe thay đổi ngôn ngữ và tiền tệ từ Provider
     final lang = context.watch<AppLanguage>();
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final repository = GroupRepository();
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         notchMargin: 8,
@@ -28,13 +32,19 @@ class TrangChu extends StatelessWidget {
                 icon: const Icon(Icons.home_filled, color: Colors.blue, size: 30),
                 onPressed: () {},
               ),
-              const SizedBox(width: 60), 
+              const SizedBox(width: 60),
               IconButton(
-                icon: const Icon(Icons.manage_accounts_outlined, color: Colors.grey, size: 30),
+                icon: const Icon(
+                  Icons.manage_accounts_outlined,
+                  color: Colors.grey,
+                  size: 30,
+                ),
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const SettingsScreen(),
+                    ),
                   );
                 },
               ),
@@ -42,7 +52,6 @@ class TrangChu extends StatelessWidget {
           ),
         ),
       ),
-
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.blue,
         elevation: 4,
@@ -60,111 +69,188 @@ class TrangChu extends StatelessWidget {
         },
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Header Gradient
-            Container(
-              padding: const EdgeInsets.only(top: 60, left: 20, right: 20, bottom: 80),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Colors.blue[800]!, Colors.blue[400]!],
-                ),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        lang.t("Chào buổi sáng,"), 
-                        style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 16),
-                      ),
-                      const Text(
-                        "Toan",
-                        style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white24, width: 2),
-                    ),
-                    child: const CircleAvatar(
-                      radius: 25,
-                      backgroundColor: Colors.white,
-                      child: Icon(Icons.person, color: Colors.blue, size: 30),
+      body: FutureBuilder<List<GroupDetails>>(
+        future: repository.getCurrentUserGroups(),
+        builder: (context, groupsSnapshot) {
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                _buildHeader(lang, currentUser),
+                Transform.translate(
+                  offset: const Offset(0, -40),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildBalanceCard(
+                            lang.t('Bạn nhận được'),
+                            lang.formatMoney(0),
+                            Icons.trending_down,
+                            Colors.green,
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: _buildBalanceCard(
+                            lang.t('Bạn cần trả'),
+                            lang.formatMoney(0),
+                            Icons.trending_up,
+                            Colors.red,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
-
-            // Phần 2 card số dư - ĐÃ CẬP NHẬT ĐỔI TIỀN TỆ
-            Transform.translate(
-              offset: const Offset(0, -40),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: [
-                    Expanded(child: _buildBalanceCard(
-                      context, 
-                      lang.t("Bạn nhận được"), 
-                      lang.formatMoney(0), // Sử dụng hàm formatMoney
-                      Icons.trending_down, 
-                      Colors.green
-                    )),
-                    const SizedBox(width: 15),
-                    Expanded(child: _buildBalanceCard(
-                      context, 
-                      lang.t("Bạn cần trả"), 
-                      lang.formatMoney(0), // Sử dụng hàm formatMoney
-                      Icons.trending_up, 
-                      Colors.red
-                    )),
-                  ],
                 ),
-              ),
-            ),
-
-            // Tiêu đề Nhóm của tôi
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  lang.t("Nhóm của tôi"),
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Nhóm của tôi',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 15),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _buildGroupList(context, lang, groupsSnapshot),
+                ),
+                const SizedBox(height: 100),
+              ],
             ),
-
-            const SizedBox(height: 15),
-
-            // Danh sách nhóm - ĐÃ CẬP NHẬT ĐỔI TIỀN TỆ TRONG ITEM
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _buildGroupItem(context, lang,"khanh", "LTDD", "3", 0.0),
-            ),
-            
-            const SizedBox(height: 100), 
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
-  // Widget Card số dư - Dùng FittedBox để tránh tràn chữ khi đổi sang USD/AUD
-  Widget _buildBalanceCard(BuildContext context, String title, String amount, IconData icon, Color color) {
+  Widget _buildHeader(AppLanguage lang, User? currentUser) {
+    final displayName = (currentUser?.displayName ?? '').trim();
+    final email = (currentUser?.email ?? '').trim();
+    final titleName = displayName.isNotEmpty
+        ? displayName
+        : (email.isNotEmpty ? email : 'Bạn');
+
+    return Container(
+      padding: const EdgeInsets.only(top: 60, left: 20, right: 20, bottom: 80),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Colors.blue[800]!, Colors.blue[400]!],
+        ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Chào bạn,',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 16,
+                ),
+              ),
+              Text(
+                titleName,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white24, width: 2),
+            ),
+            child: const CircleAvatar(
+              radius: 25,
+              backgroundColor: Colors.white,
+              child: Icon(Icons.person, color: Colors.blue, size: 30),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGroupList(
+    BuildContext context,
+    AppLanguage lang,
+    AsyncSnapshot<List<GroupDetails>> groupsSnapshot,
+  ) {
+    if (groupsSnapshot.connectionState == ConnectionState.waiting) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (groupsSnapshot.hasError) {
+      return _buildInfoCard('Không thể tải danh sách nhóm.');
+    }
+
+    final groups = groupsSnapshot.data ?? [];
+    if (groups.isEmpty) {
+      return _buildInfoCard('Bạn chưa tham gia nhóm nào.');
+    }
+
+    return Column(
+      children: groups
+          .map(
+            (group) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildGroupItem(context, lang, group),
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  Widget _buildInfoCard(String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Text(
+        message,
+        style: const TextStyle(color: Colors.black54),
+      ),
+    );
+  }
+
+  Widget _buildBalanceCard(
+    String title,
+    String amount,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
@@ -188,16 +274,29 @@ class TrangChu extends StatelessWidget {
             fit: BoxFit.scaleDown,
             child: Text(
               amount,
-              style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: color,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          )
+          ),
         ],
       ),
     );
   }
 
-  // Widget hiển thị từng nhóm
-  Widget _buildGroupItem(BuildContext context, AppLanguage lang, String groupName,String groupId, String members, double balanceValue) {
+  Widget _buildGroupItem(
+    BuildContext context,
+    AppLanguage lang,
+    GroupDetails group,
+  ) {
+    final subtitleParts = <String>[
+      '${group.memberCount} thành viên',
+      if (group.groupType.isNotEmpty) group.groupType,
+      if (group.groupCode.isNotEmpty) 'Mã: ${group.groupCode}',
+    ];
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -232,10 +331,22 @@ class TrangChu extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(groupName, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                    Text(
+                      group.groupName,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text("$members ${lang.t("thành viên")}", style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                    Text(lang.t("Gần nhất 16 ngày trước"), style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                    Text(
+                      subtitleParts.join(' • '),
+                      style: const TextStyle(color: Colors.grey, fontSize: 13),
+                    ),
+                    Text(
+                      _formatCreatedAt(group.createdAt),
+                      style: const TextStyle(color: Colors.grey, fontSize: 11),
+                    ),
                   ],
                 ),
               ),
@@ -243,16 +354,32 @@ class TrangChu extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    lang.formatMoney(balanceValue), // Đã sửa từ "0đ" thành formatMoney
-                    style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 16),
+                    lang.formatMoney(0),
+                    style: const TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
-                  Text(lang.t("Số dư"), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  const Text(
+                    'Số dư',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
                 ],
-              )
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  String _formatCreatedAt(Timestamp? timestamp) {
+    if (timestamp == null) {
+      return 'Vừa tạo';
+    }
+
+    final createdAt = timestamp.toDate();
+    return 'Tạo ngày ${createdAt.day.toString().padLeft(2, '0')}/${createdAt.month.toString().padLeft(2, '0')}/${createdAt.year}';
   }
 }
