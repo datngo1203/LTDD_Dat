@@ -126,7 +126,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                         decoration: InputDecoration(
                           hintText: appLang.t('Nhập loại nhóm'),
                           helperText:
-                              appLang.t('Để trống sẽ tự động dùng giá trị Khác'),
+                              appLang.t('(Tùy chọn)'),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),

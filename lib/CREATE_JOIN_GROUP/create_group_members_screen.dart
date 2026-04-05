@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../SETTING/app_language.dart';
+import '../TrangChu.dart';
 import 'group_repository.dart';
 
 class CreateGroupMembersScreen extends StatefulWidget {
@@ -26,16 +27,17 @@ class _CreateGroupMembersScreenState extends State<CreateGroupMembersScreen> {
 
   bool _isAddingMember = false;
   bool _isCreatingGroup = false;
+  bool _isLoadingDefaultName = false;
 
   @override
   void initState() {
     super.initState();
     _yourNameController.text =
         FirebaseAuth.instance.currentUser?.displayName?.trim() ?? '';
+    _loadDefaultDisplayName();
   }
 
-  bool get _canCreateGroup =>
-      !_isCreatingGroup && _yourNameController.text.trim().isNotEmpty;
+  bool get _canCreateGroup => !_isCreatingGroup && !_isLoadingDefaultName;
 
   @override
   Widget build(BuildContext context) {
@@ -62,8 +64,10 @@ class _CreateGroupMembersScreenState extends State<CreateGroupMembersScreen> {
                     TextField(
                       controller: _yourNameController,
                       textCapitalization: TextCapitalization.words,
-                      onChanged: (_) => setState(() {}),
                       decoration: InputDecoration(
+                        helperText: appLang.t(
+                          'Để trống sẽ tự động dùng tên user của bạn',
+                        ),
                         hintText: appLang.t('Nhập tên hiển thị của bạn'),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -265,7 +269,7 @@ class _CreateGroupMembersScreenState extends State<CreateGroupMembersScreen> {
   Future<void> _handleCreateGroup() async {
     FocusScope.of(context).unfocus();
 
-    if (_yourNameController.text.trim().isEmpty) {
+    if (_yourNameController.text.trim().isEmpty && false) {
       _showMessage('Vui lòng nhập tên của bạn.', isError: true);
       return;
     }
@@ -303,7 +307,10 @@ class _CreateGroupMembersScreenState extends State<CreateGroupMembersScreen> {
         return;
       }
 
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const TrangChu()),
+        (route) => false,
+      );
     } catch (e) {
       if (!mounted) {
         return;
@@ -330,6 +337,27 @@ class _CreateGroupMembersScreenState extends State<CreateGroupMembersScreen> {
         backgroundColor: isError ? Colors.red : null,
       ),
     );
+  }
+
+  Future<void> _loadDefaultDisplayName() async {
+    setState(() {
+      _isLoadingDefaultName = true;
+    });
+
+    try {
+      final defaultName = await _repository.getCurrentUserDefaultDisplayName();
+      if (!mounted || _yourNameController.text.trim().isNotEmpty) {
+        return;
+      }
+
+      _yourNameController.text = defaultName;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingDefaultName = false;
+        });
+      }
+    }
   }
 
   @override
